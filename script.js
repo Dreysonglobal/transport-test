@@ -13,8 +13,6 @@ const supabaseClient = window.supabaseClient;
 const postsContainer = document.getElementById('posts-container');
 const hamburger = document.getElementById('hamburger');
 const navbar = document.getElementById('navbar');
-const heroAdImages = ['images/ads5.jpeg', 'images/ads5.jpeg', 'images/ads5.jpeg', 'images/ads5.jpeg'];
-
 function setupHeroAdRotation(selector, intervalMs) {
     const slides = Array.from(document.querySelectorAll(selector));
     if (!slides.length) return;
@@ -31,62 +29,21 @@ function setupHeroAdRotation(selector, intervalMs) {
     setInterval(rotate, intervalMs);
 }
 
-function setupSmileyAdPopup() {
-    const homePage = document.querySelector('.hero');
-    if (!homePage) return;
+function createAdSpot(index) {
+  return `
+    <aside class="ad-spot" aria-label="Advertisement">
+      <img src="images/ads5.jpeg" alt="Advertisement" loading="lazy">
+    </aside>
+  `;
+}
 
-    const smiley = document.createElement('button');
-    smiley.type = 'button';
-    smiley.className = 'floating-smiley';
-    smiley.setAttribute('aria-label', 'View featured ads');
-    smiley.innerHTML = '😊';
+function setupInlineAdSpots(container, count = 8) {
+  if (!container) return;
 
-    const popup = document.createElement('div');
-    popup.className = 'smiley-ad-popup';
-    popup.innerHTML = `
-        <div class="smiley-popup-inner">
-            <img src="images/ads5.jpeg" alt="Featured advert 1" class="smiley-popup-image active">
-            <img src="images/ads6.jpeg" alt="Featured advert 2" class="smiley-popup-image">
-            <img src="images/ads5.jpeg" alt="Featured advert 3" class="smiley-popup-image">
-            <img src="images/ads6.jpeg" alt="Featured advert 4" class="smiley-popup-image">
-        </div>
-    `;
-
-    document.body.appendChild(smiley);
-    document.body.appendChild(popup);
-
-    const popupImages = Array.from(popup.querySelectorAll('.smiley-popup-image'));
-    let popupIndex = 0;
-    const rotatePopup = () => {
-        popupImages.forEach((image, index) => {
-            image.classList.toggle('active', index === popupIndex);
-        });
-        popupIndex = (popupIndex + 1) % popupImages.length;
-    };
-    rotatePopup();
-    setInterval(rotatePopup, 5000);
-
-    let shown = false;
-    const toggleVisibility = () => {
-        const shouldShow = window.scrollY > 180;
-        if (shouldShow && !shown) {
-            smiley.classList.add('visible');
-            popup.classList.add('visible');
-            shown = true;
-        } else if (!shouldShow && shown) {
-            smiley.classList.remove('visible');
-            popup.classList.remove('visible');
-            shown = false;
-        }
-    };
-
-    toggleVisibility();
-    window.addEventListener('scroll', toggleVisibility, { passive: true });
-
-    smiley.addEventListener('click', () => {
-        popup.classList.toggle('visible');
-        smiley.classList.toggle('visible');
-    });
+  container.insertAdjacentHTML(
+    'beforeend',
+    Array.from({ length: count }, (_, index) => createAdSpot(index)).join('')
+  );
 }
 
 // Set current year in footer
@@ -98,7 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     setupHeroAdRotation('.hero-ad', 5000);
     setupHeroAdRotation('.article-ad-slide', 5000);
-    setupSmileyAdPopup();
+    setupInlineAdSpots(document.getElementById('article-ad-spots'));
     
     // Load posts on homepage
     if (postsContainer) loadPosts();
@@ -140,6 +97,7 @@ async function loadPosts() {
                     <p>No posts available yet. Check back soon!</p>
                 </div>
             `;
+          setupInlineAdSpots(postsContainer);
             return;
         }
         
@@ -148,6 +106,17 @@ async function loadPosts() {
         posts.forEach(p => { window.postsCache[p.id] = p; });
         
         postsContainer.innerHTML = posts.map(post => createPostCard(post)).join('');
+        const postCards = Array.from(postsContainer.children);
+        const adSpots = Array.from({ length: 8 }, (_, index) => {
+          const adSpot = document.createElement('aside');
+          adSpot.className = 'ad-spot';
+          adSpot.setAttribute('aria-label', 'Advertisement');
+          adSpot.innerHTML = `<img src="images/ads5.jpeg" alt="Advertisement" loading="lazy">`;
+          return adSpot;
+        });
+        postsContainer.replaceChildren(...postCards.flatMap((card, index) =>
+          index % 2 === 1 && adSpots.length ? [card, adSpots.shift()] : [card]
+        ), ...adSpots);
         
     } catch (error) {
         console.error('Error loading posts:', error);
